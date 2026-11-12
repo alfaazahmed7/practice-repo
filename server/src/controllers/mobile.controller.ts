@@ -6,7 +6,7 @@ export const getMobiles = async (
     res: Response
 ): Promise<void> => {
     try {
-        const { search, sort, brand } = req.query;
+        const { search, sort, brand, ram } = req.query;
 
         // query object
         const query: Record<string, unknown> = {};
@@ -41,10 +41,14 @@ export const getMobiles = async (
             query.brand = { $in: [brand] }
         }
 
+        if (ram) {
+            query.ram = { $in: [ram] }
+        }
+
         const mobiles = await Mobile.find(query)
             .sort(sortOption);
 
-        if (!mobiles) {
+        if (mobiles.length === 0) {
             res.status(404).json({
                 message: 'No mobiles data has been found'
             });

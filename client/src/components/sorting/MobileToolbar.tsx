@@ -15,6 +15,7 @@ export default function MobileToolbar() {
     const activeSearch = searchParams.get('search') || '';
     const activeSort = searchParams.get('sort') || '';
     const activeBrand = searchParams.get('brand') || '';
+    const activeRam = searchParams.get('ram') || '';
 
     const updateQuery = (key: string, value: string) => {
         const current = new URLSearchParams(Array.from(searchParams.entries()));
@@ -55,7 +56,7 @@ export default function MobileToolbar() {
                         onChange={(e) => updateQuery('sort', e.target.value)}
                         className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-purple-100 outline-none transition focus:border-fuchsia-300/40">
                         <div className="bg-black text-gray-900">
-                            <option value=''>All</option>
+                            <option value=''>All Sort</option>
                             <option value='price-asc'>Price: Low to High</option>
                             <option value='price-desc'>Price: High to Low</option>
                             <option value='rating-desc'>Rating: High to Low</option>
@@ -80,6 +81,20 @@ export default function MobileToolbar() {
                             <option value='Vivo'>Vivo</option>
                             <option value='Honor'>Honor</option>
                             <option value='Motorola'>Motorola</option>
+                        </div>
+                    </select>
+
+                    <select
+                        value={activeRam}
+                        onChange={(e) => updateQuery('ram', e.target.value)}
+                        className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-purple-100 outline-none transition focus:border-fuchsia-300/40">
+                        <div className="bg-black text-gray-900">
+                            <option value='all'>All Ram</option>
+                            <option value='4 GB'>4 GB</option>
+                            <option value='6 GB'>6 GB</option>
+                            <option value='8 GB'>8 GB</option>
+                            <option value='12 GB'>12 GB</option>
+                            <option value='16 GB'>16 GB</option>
                         </div>
                     </select>
 
