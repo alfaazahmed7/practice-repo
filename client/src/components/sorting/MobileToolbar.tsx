@@ -14,6 +14,7 @@ export default function MobileToolbar() {
 
     const activeSearch = searchParams.get('search') || '';
     const activeSort = searchParams.get('sort') || '';
+    const activeBrand = searchParams.get('brand') || '';
 
     const updateQuery = (key: string, value: string) => {
         const current = new URLSearchParams(Array.from(searchParams.entries()));
@@ -57,17 +58,28 @@ export default function MobileToolbar() {
                             <option value=''>All</option>
                             <option value='price-asc'>Price: Low to High</option>
                             <option value='price-desc'>Price: High to Low</option>
-                            <option value='rating-asc'>Rating: High to Low</option>
+                            <option value='rating-desc'>Rating: High to Low</option>
                             <option value='newest'>Newest First</option>
                         </div>
                     </select>
 
-                    <select className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-purple-100 outline-none transition focus:border-fuchsia-300/40">
+                    <select
+                        value={activeBrand}
+                        onChange={(e) => updateQuery('brand', e.target.value)}
+                        className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-purple-100 outline-none transition focus:border-fuchsia-300/40">
                         <div className="bg-black text-gray-900">
-                            <option>Filter: Brand</option>
-                            <option>In Stock Only</option>
-                            <option>Flagship</option>
-                            <option>Android</option>
+                            <option value='all'>All Brand</option>
+                            <option value='Samsung'>Samsung</option>
+                            <option value='Oppo'>Oppo</option>
+                            <option value='Apple'>Apple</option>
+                            <option value='Tecno'>Tecno</option>
+                            <option value='Google'>Google</option>
+                            <option value='Realme'>Realme</option>
+                            <option value='OnePlus'>OnePlus</option>
+                            <option value='Xiaomi'>Xiaomi</option>
+                            <option value='Vivo'>Vivo</option>
+                            <option value='Honor'>Honor</option>
+                            <option value='Motorola'>Motorola</option>
                         </div>
                     </select>
 

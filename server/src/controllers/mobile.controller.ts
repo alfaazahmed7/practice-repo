@@ -6,7 +6,7 @@ export const getMobiles = async (
     res: Response
 ): Promise<void> => {
     try {
-        const { search, sort } = req.query;
+        const { search, sort, brand } = req.query;
 
         // query object
         const query: Record<string, unknown> = {};
@@ -29,11 +29,16 @@ export const getMobiles = async (
         else if (sort === 'price-desc') {
             sortOption = { price: -1 };
         }
-        else if (sort === 'rating-asc') {
+        else if (sort === 'rating-desc') {
             sortOption = { rating: -1 };
         }
         else if (sort === 'newest') {
             sortOption = { releaseYear: -1 }
+        }
+
+        // brand filtering
+        if (brand) {
+            query.brand = { $in: [brand] }
         }
 
         const mobiles = await Mobile.find(query)
