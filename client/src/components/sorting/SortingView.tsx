@@ -1,5 +1,3 @@
-"use client";
-
 import { Mobile } from "@/types/Mobile";
 import MobileCard from "./MobileCard";
 import MobileToolbar from "./MobileToolbar";
@@ -8,10 +6,29 @@ import Link from "next/link";
 import { FiArrowLeft, FiSmartphone } from "react-icons/fi";
 
 type SortingViewProps = {
-    mobiles: Mobile[];
+    params: {
+        search?: string;
+        sort?: string;
+        brand?: string;
+        ram?: string;
+        page?: string;
+        limit?: string;
+    },
+    mobilesData: {
+        success: boolean,
+        total: number,
+        mobiles: Mobile[],
+        pagination: {
+            currentPage: number,
+            limit: number,
+            totalMobiles: number,
+            totalPages: number
+        }
+    }
 };
 
-export default function SortingView({ mobiles }: SortingViewProps) {
+export default function SortingView({ mobilesData, params }: SortingViewProps) {
+    const { mobiles, total, pagination } = mobilesData;
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-900 to-fuchsia-950 px-6 py-12 sm:px-10 lg:px-16">
@@ -51,7 +68,11 @@ export default function SortingView({ mobiles }: SortingViewProps) {
                     </section>
                 )}
 
-                <MobilePagination />
+                {/* {mobiles.length > 7 && (
+                    <MobilePagination params={params} pagination={pagination} />
+                )} */}
+
+                <MobilePagination params={params} pagination={pagination} />
             </div>
         </main>
     );

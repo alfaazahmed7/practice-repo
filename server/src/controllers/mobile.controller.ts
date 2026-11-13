@@ -7,6 +7,10 @@ export const getMobiles = async (
 ): Promise<void> => {
     try {
         const { search, sort, brand, ram } = req.query;
+        const page = Math.max(1, Number(req.query.page) || 1);
+        const limit = Math.min(20, Number(req.query.limit) || 8);
+
+        const skip = (page - 1) * limit;
 
         // query object
         const query: Record<string, unknown> = {};
@@ -46,18 +50,32 @@ export const getMobiles = async (
         }
 
         const mobiles = await Mobile.find(query)
-            .sort(sortOption);
+            .sort(sortOption)
+            .skip(skip)
+            .limit(limit);
 
-        if (mobiles.length === 0) {
-            res.status(404).json({
-                message: 'No mobiles data has been found'
-            });
-        }
+        // if (mobiles.length === 0) {
+        //     res.status(404).json({
+        //         message: 'No mobiles data has been found'
+        //     });
+        // }
+
+        // get total number of mobiles
+        const totalMobiles = await Mobile.countDocuments();
+
+        // calculate total pages
+        const totalPages = Math.ceil(totalMobiles / limit);
 
         res.status(200).json({
             success: true,
             total: mobiles.length,
-            mobiles
+            mobiles,
+            pagination: {
+                currentPage: page,
+                limit,
+                totalMobiles,
+                totalPages
+            }
         });
     }
     catch (error) {
@@ -68,3 +86,7 @@ export const getMobiles = async (
         });
     }
 }
+
+// notes:
+// 1. Math.max(1, ...) prevents page numbers below 1.
+// 2. The Math.min(50, ...) prevents someone from requesting an excessively large number of products per page.

@@ -5,7 +5,13 @@ const baseUrl = process.env.NEXT_SERVER_URL;
 interface GetMobilesResponse {
     success: boolean,
     total: number,
-    mobiles: Mobile[]
+    mobiles: Mobile[],
+    pagination: {
+        currentPage: number,
+        limit: number,
+        totalMobiles: number,
+        totalPages: number
+    }
 }
 
 export const getMobilesData = async (queryString: string): Promise<GetMobilesResponse> => {
