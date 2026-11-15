@@ -30,11 +30,24 @@ export const registerUser = async (req: Request, res: Response) => {
             password: hashPassword
         });
 
-        const token = jwt.sign(
+        const accessToken = jwt.sign(
             { id: user._id },
             process.env.JWT_SECRET || 'fallback secret',
-            { expiresIn: '1d' }
+            { expiresIn: '15m' }
         );
+
+        const refreshToken = jwt.sign(
+            { id: user._id },
+            process.env.JWT_SECRET || 'fallback secret',
+            { expiresIn: '7d' }
+        );
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 1000 // 7 days
+        });
 
         res.status(201).json({
             message: 'User register successfully',
@@ -42,7 +55,7 @@ export const registerUser = async (req: Request, res: Response) => {
                 name,
                 email
             },
-            token
+            accessToken
         });
     }
     catch (error) {
@@ -94,6 +107,60 @@ export const getMe = async (req: Request, res: Response) => {
         console.error('User fetched failed with:', error);
 
         return res.status(500).json({
+            message: 'Server error happend'
+        });
+    }
+}
+
+export const refreshToken = async (req: Request, res: Response) => {
+    try {
+        const refreshToken = req.cookies.refreshToken;
+        if (!refreshToken) {
+            return res.status(401).json({
+                message: 'Token not found!'
+            });
+        }
+
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            throw new Error('JWT_SECRET is not configured');
+        }
+
+        const decoded = jwt.verify(refreshToken, secret) as CustomJwtPayload;
+        if (!decoded.id) {
+            return res.status(401).json({
+                message: 'Invalid session'
+            });
+        }
+
+        const accessToken = jwt.sign(
+            { id: decoded.id },
+            process.env.JWT_SECRET || 'fallback secret',
+            { expiresIn: '15m' }
+        );
+
+        const newRefreshToken = jwt.sign(
+            { id: decoded.id },
+            process.env.JWT_SECRET || 'fallback secret',
+            { expiresIn: '7d' }
+        );
+
+        res.cookie('refreshToken', newRefreshToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 1000 // 7d
+        });
+
+        res.status(200).json({
+            message: 'Access token refreshed successfully',
+            accessToken
+        });
+    }
+    catch (error) {
+        console.error('Token refresh failed with:', error);
+
+        res.status(500).json({
             message: 'Server error happend'
         });
     }
