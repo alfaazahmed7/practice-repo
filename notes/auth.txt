@@ -1,2 +1,12 @@
 // 1. model<IUser>
 This tells Mongoose that the schema should follow the structure defined in IUser.
+
+2. TypeScript interface
+interface IUser {
+    name?: string;
+    email?: string;
+    password?: string;
+}
+
+name: string means the property is required in TypeScript.
+name?: string means the property is optional in TypeScript

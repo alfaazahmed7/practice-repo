@@ -24,6 +24,3 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model<IUser>('User', userSchema);
 export default User;
-
-// notes:
-// model<IUser> -> This tells Mongoose that the schema should follow the structure defined in IUser.

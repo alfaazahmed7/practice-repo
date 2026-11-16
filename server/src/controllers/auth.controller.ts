@@ -1,7 +1,8 @@
+import crypto from 'crypto';
 import { Request, Response } from 'express';
-import User from '../models/User.js';
-import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import Session from '../models/session.model.js';
+import User from '../models/user.model.js';
 
 interface CustomJwtPayload {
     id: string;
@@ -22,7 +23,10 @@ export const registerUser = async (req: Request, res: Response) => {
             });
         }
 
-        const hashPassword = await bcrypt.hash(password, 10);
+        const hashPassword = crypto
+            .createHash('sha256')
+            .update(password)
+            .digest('hex');
 
         const user = await User.create({
             name,
@@ -30,16 +34,28 @@ export const registerUser = async (req: Request, res: Response) => {
             password: hashPassword
         });
 
-        const accessToken = jwt.sign(
-            { id: user._id },
-            process.env.JWT_SECRET || 'fallback secret',
-            { expiresIn: '15m' }
-        );
-
         const refreshToken = jwt.sign(
             { id: user._id },
             process.env.JWT_SECRET || 'fallback secret',
             { expiresIn: '7d' }
+        );
+
+        const refreshTokenHash = crypto
+            .createHash('sha256')
+            .update(refreshToken)
+            .digest('hex');
+
+        const session = await Session.create({
+            user: user._id,
+            refreshTokenHash,
+            ip: req.ip,
+            userAgent: req.headers['user-agent']
+        });
+
+        const accessToken = jwt.sign(
+            { id: user._id, sessionId: session._id },
+            process.env.JWT_SECRET || 'fallback secret',
+            { expiresIn: '15m' }
         );
 
         res.cookie('refreshToken', refreshToken, {
@@ -133,6 +149,22 @@ export const refreshToken = async (req: Request, res: Response) => {
             });
         }
 
+        const refreshTokenHash = crypto
+            .createHash('sha256')
+            .update(refreshToken)
+            .digest('hex');
+
+        const session = await Session.findOne({
+            refreshTokenHash,
+            revoked: false
+        });
+
+        if (!session) {
+            return res.status(401).json({
+                message: 'Invalid refresh token'
+            });
+        }
+
         const accessToken = jwt.sign(
             { id: decoded.id },
             process.env.JWT_SECRET || 'fallback secret',
@@ -145,6 +177,14 @@ export const refreshToken = async (req: Request, res: Response) => {
             { expiresIn: '7d' }
         );
 
+        const newRefreshTokenHash = crypto
+            .createHash('sha256')
+            .update(newRefreshToken)
+            .digest('hex');
+
+        session.refreshTokenHash = newRefreshTokenHash;
+        await session.save();
+
         res.cookie('refreshToken', newRefreshToken, {
             httpOnly: true,
             secure: true,
@@ -153,7 +193,7 @@ export const refreshToken = async (req: Request, res: Response) => {
         });
 
         res.status(200).json({
-            message: 'Access token refreshed successfully',
+            message: 'Token refreshed successfully',
             accessToken
         });
     }
@@ -161,6 +201,48 @@ export const refreshToken = async (req: Request, res: Response) => {
         console.error('Token refresh failed with:', error);
 
         res.status(500).json({
+            message: 'Server error happend'
+        });
+    }
+}
+
+export const logoutUser = async (req: Request, res: Response) => {
+    try {
+        const refreshToken = req.cookies.refreshToken;
+        if (!refreshToken) {
+            return res.status(400).json({
+                message: 'Refresh token not found'
+            });
+        }
+
+        const refreshTokenHash = crypto
+            .createHash('sha256')
+            .update(refreshToken)
+            .digest('hex');
+
+        const session = await Session.findOne({
+            refreshTokenHash,
+            revoked: false
+        });
+        console.log(session, 'session');
+
+        if (!session) {
+            return res.status(400).json({
+                message: 'Invalid refresh token'
+            });
+        }
+
+        session.revoked = true;
+        await session.save();
+
+        res.status(200).json({
+            message: 'Logged out Successfull'
+        });
+    }
+    catch (error) {
+        console.error('Logged out failed with:', error);
+
+        return res.status(500).json({
             message: 'Server error happend'
         });
     }

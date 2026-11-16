@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import Mobile from "../models/Mobile.js"
+import Mobile from "../models/mobile.model.js"
 
 export const getMobiles = async (
     req: Request,
