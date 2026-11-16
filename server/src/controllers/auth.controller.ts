@@ -83,6 +83,78 @@ export const registerUser = async (req: Request, res: Response) => {
     }
 }
 
+export const loginUser = async (req: Request, res: Response) => {
+    try {
+        const { email, password } = req.body;
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).json({
+                message: "Invalid email or password"
+            })
+        }
+
+        const hashedPassword = crypto
+            .createHash('sha256')
+            .update(password)
+            .digest('hex');
+
+        const isPasswordValid = hashedPassword === user.password;
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                message: "Invalid email or password"
+            })
+        }
+
+        const refreshToken = jwt.sign(
+            { id: user._id },
+            process.env.JWT_SECRET || 'fallback secret',
+            { expiresIn: '7d' }
+        );
+
+        const refreshTokenHash = crypto
+            .createHash('sha256')
+            .update(refreshToken)
+            .digest('hex');
+
+        const session = await Session.create({
+            user: user._id,
+            refreshTokenHash,
+            ip: req.ip,
+            userAgent: req.headers['user-agent']
+        });
+
+        const accessToken = jwt.sign(
+            { id: user._id, sessionId: session._id },
+            process.env.JWT_SECRET || 'fallback secret',
+            { expiresIn: '15m' }
+        );
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 1000 // 7 days
+        });
+
+        res.status(200).json({
+            message: 'Logged in successful',
+            user: {
+                name: user.name,
+                email: user.email
+            },
+            accessToken
+        });
+    }
+    catch (error) {
+        console.error('Logging in failed with:', error);
+
+        return res.status(500).json({
+            message: 'Server error happend'
+        });
+    }
+}
+
 export const getMe = async (req: Request, res: Response) => {
     try {
         const token = req.headers.authorization?.split(' ')[1];
@@ -241,6 +313,47 @@ export const logoutUser = async (req: Request, res: Response) => {
     }
     catch (error) {
         console.error('Logged out failed with:', error);
+
+        return res.status(500).json({
+            message: 'Server error happend'
+        });
+    }
+}
+
+export const logoutAllUser = async (req: Request, res: Response) => {
+    try {
+        const refreshToken = req.cookies.refreshToken;
+        if (!refreshToken) {
+            return res.status(400).json({
+                message: 'Refresh token not found'
+            });
+        }
+
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            throw new Error('JWT_SECRET is not configured');
+        }
+
+        const decoded = jwt.verify(refreshToken, secret) as CustomJwtPayload;
+        if (!decoded.id) {
+            return res.status(401).json({
+                message: 'Invalid session'
+            });
+        }
+
+        await Session.updateMany(
+            { user: decoded.id, revoked: false },
+            { revoked: true }
+        );
+
+        res.clearCookie('refreshToken');
+
+        res.status(200).json({
+            message: 'Logged out from all devices successfully'
+        });
+    }
+    catch (error) {
+        console.error('Logging out from all devices failed with:', error);
 
         return res.status(500).json({
             message: 'Server error happend'
